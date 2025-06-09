@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Harri Metrics Dashboard</title>
+  <style>
+    body { font-family: sans-serif; margin: 20px; }
+    .container { margin-bottom: 20px; padding: 10px; border: 1px solid #ccc; }
+    label { display: inline-block; width: 100px; }
+    input { margin-bottom: 5px; }
+    pre { background-color: #f4f4f4; padding: 10px; border: 1px solid #ddd; white-space: pre-wrap; word-wrap: break-word; }
+  </style>
+</head>
+<body>
+<h1>Employee Satisfaction Metrics</h1>
+
+<div class="container">
+  <h2>Query Metrics</h2>
+  <label for="storeId">Store ID:</label>
+  <input type="text" id="storeId" value="S1"><br>
+  <label for="subStoreId">Sub-Store ID (Optional):</label>
+  <input type="text" id="subStoreId" value=""><br>
+  <label for="monthYear">Month (YYYY-MM):</label>
+  <input type="text" id="monthYear" value="2024-11"><br>
+  <button onclick="fetchMetrics()">Get Metrics</button>
+</div>
+
+<div class="container">
+  <h3>Monthly Satisfaction:</h3>
+  <pre id="satisfactionResult">No data loaded.</pre>
+</div>
+<div class="container">
+  <h3>Average Response Time:</h3>
+  <pre id="responseTimeResult">No data loaded.</pre>
+</div>
+<div class="container">
+  <h3>Participation Rate:</h3>
+  <pre id="participationResult">No data loaded.</pre>
+</div>
+
+<script>
+  async function fetchMetrics() {
+    const storeId = document.getElementById('storeId').value;
+    const subStoreId = document.getElementById('subStoreId').value;
+    const monthYear = document.getElementById('monthYear').value;
+
+    // For HTTP Basic Auth - in a real app, you'd handle auth more securely
+    const username = 'harriuser';
+    const password = 'harripassword';
+    const headers = new Headers();
+    headers.append('Authorization', 'Basic ' + btoa(username + ":" + password));
+
+    const baseUrl = '/api/v1/metrics';
+    const params = new URLSearchParams({
+      store_id: storeId,
+      month: monthYear
+    });
+    if (subStoreId) {
+      params.append('sub_store_id', subStoreId);
+    }
+
+    try {
+      // Fetch Monthly Satisfaction
+      const satResponse = await fetch(`${baseUrl}/monthly-satisfaction?${params.toString()}`, { headers: headers });
+      document.getElementById('satisfactionResult').textContent = satResponse.ok ? JSON.stringify(await satResponse.json(), null, 2) : `Error: ${satResponse.status} ${await satResponse.text()}`;
+
+      // Fetch Average Response Time
+      const artResponse = await fetch(`${baseUrl}/average-response-time?${params.toString()}`, { headers: headers });
+      document.getElementById('responseTimeResult').textContent = artResponse.ok ? JSON.stringify(await artResponse.json(), null, 2) : `Error: ${artResponse.status} ${await artResponse.text()}`;
+
+      // Fetch Participation Rate
+      const prResponse = await fetch(`${baseUrl}/participation-rate?${params.toString()}`, { headers: headers });
+      document.getElementById('participationResult').textContent = prResponse.ok ? JSON.stringify(await prResponse.json(), null, 2) : `Error: ${prResponse.status} ${await prResponse.text()}`;
+
+    } catch (error) {
+      console.error('Error fetching metrics:', error);
+      document.getElementById('satisfactionResult').textContent = 'Error fetching data.';
+      document.getElementById('responseTimeResult').textContent = 'Error fetching data.';
+      document.getElementById('participationResult').textContent = 'Error fetching data.';
+    }
+  }
+</script>
+</body>
+</html>
