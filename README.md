@@ -87,7 +87,7 @@ The primary goal was to create a scalable and maintainable system focusing on cl
 Detailed setup instructions for each component can be found in their respective README files:
 
 *   **DBT Pipeline Setup:** [./dbt_pipeline/README.md](./dbt_pipeline/README.md)
-*   **Spring Boot API Setup:** [./spring_boot_api/README.md](./spring_boot_api/README.md)
+*   **Spring Boot API Setup:** [./springboot_api/README.md](./springboot_api/README.md)
 
 **General Prerequisites:**
 *   Git
