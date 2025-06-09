@@ -1,0 +1,18 @@
+# DBT
+dbt_pipeline/logs/
+dbt_pipeline/target/
+dbt_pipeline/dbt_packages/
+
+# IDE - PyCharm example
+.idea/
+*.iml
+*.iws
+
+# OS specific
+.DS_Store
+Thumbs.db
+
+# Python virtual environment (if you created one in the root)
+venv/
+*.pyc
+__pycache__/

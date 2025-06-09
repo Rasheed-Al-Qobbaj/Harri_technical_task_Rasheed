@@ -1,0 +1,20 @@
+version: 2
+
+sources:
+  - name: raw_input_data  # A logical name for this group of sources
+    database: HARRI_ANALYTICS_DB # Name of your Snowflake database
+    schema: RAW_DATA          # Schema in Snowflake where raw tables are
+    tables:
+      - name: RAW_INITIAL_DATA
+        description: "Initial bulk load of survey data."
+        # Optionally, define columns here for documentation and source freshness tests
+        # columns:
+        #   - name: survey_id
+        #     description: "Unique identifier for the survey response."
+        #     tests:
+        #       - unique # If you expect it to be unique in the raw file
+        #       - not_null
+      - name: RAW_INCREMENTAL_DATA
+        description: "Incremental updates to survey data."
+      - name: RAW_DELETED_RECORDS
+        description: "Records indicating survey responses that should be soft-deleted."

@@ -1,0 +1,226 @@
+version: 2
+
+models:
+  - name: fct_monthly_satisfaction
+    description: "Fact table storing the average monthly employee satisfaction score per store, sub-store, and month. It only considers responses from active employees and excludes soft-deleted survey responses."
+    config:
+      +tags: ['metrics', 'satisfaction', 'daily_build'] # Example tags
+    columns:
+      - name: satisfaction_month_date_key
+        description: "Foreign key to dim_date_extended.date_key, representing the month of the satisfaction score."
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_date_extended')
+              field: date_key
+
+      - name: store_dim_key
+        description: "Foreign key to dim_stores.store_dim_key."
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_stores')
+              field: store_dim_key
+
+      - name: sub_store_dim_key
+        description: "Foreign key to dim_sub_stores.sub_store_dim_key. Value is 'MISSING_SUB_STORE_KEY' if not applicable or unknown."
+        tests:
+          - not_null # Even the 'MISSING_SUB_STORE_KEY' 'unknown' key should not be null
+
+      - name: store_business_key # Included for easier ad-hoc querying and API filtering
+        description: "The business key for the store (e.g., S1, S2)."
+        tests:
+          - not_null
+
+      - name: sub_store_business_key # Included for easier ad-hoc querying and API filtering
+        description: "The business key for the sub-store (e.g., SS1, SS2). Can be NULL if not applicable."
+        # Not adding not_null here as it can be genuinely NULL if a survey is only store-level
+
+      - name: satisfaction_month
+        description: "The first day of the month for which the satisfaction score is calculated (e.g., '2024-11-01')."
+        tests:
+          - not_null
+
+      - name: avg_monthly_satisfaction_score
+        description: "The average survey score (typically 1-5) for the given month, store, and sub-store."
+        tests:
+          - not_null
+          - dbt_utils.accepted_range: # Requires dbt_utils package
+              min_value: 1
+              max_value: 5
+              inclusive: true
+          - dbt_expectations.expect_column_values_to_be_of_type: # Requires dbt_expectations
+              column_type: NUMBER # Or FLOAT, DECIMAL depending on Snowflake type
+
+      - name: number_of_surveys_fact
+        description: "The count of unique survey responses included in this monthly satisfaction calculation."
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: NUMBER
+
+      - name: dwh_inserted_at
+        description: "Timestamp when this aggregated record was inserted into the DWH."
+        tests:
+          - not_null
+
+      - name: dwh_updated_at
+        description: "Timestamp when this aggregated record was last updated in the DWH."
+        tests:
+          - not_null
+    tests:
+      - dbt_utils.unique_combination_of_columns: # Test the grain of the table
+          combination_of_columns:
+            - satisfaction_month_date_key
+            - store_dim_key
+            - sub_store_dim_key
+
+  - name: fct_avg_response_time
+    description: "Fact table storing the average monthly survey response time in days per store and sub-store. Considers only non-deleted surveys with valid response times from active employees."
+    config:
+      +tags: ['metrics', 'response_time', 'daily_build']
+    columns:
+      - name: response_month_date_key
+        description: "Foreign key to dim_date_extended.date_key, representing the month of the survey."
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_date_extended')
+              field: date_key
+
+      - name: store_dim_key
+        description: "Foreign key to dim_stores.store_dim_key."
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_stores')
+              field: store_dim_key
+
+      - name: sub_store_dim_key
+        description: "Foreign key to dim_sub_stores.sub_store_dim_key. Value is 'MISSING_SUB_STORE_KEY' if not applicable or unknown."
+        tests:
+          - not_null
+
+      - name: store_business_key
+        description: "The business key for the store."
+        tests:
+          - not_null
+
+      - name: sub_store_business_key
+        description: "The business key for the sub-store. Can be NULL."
+
+      - name: response_month
+        description: "The first day of the month for which the average response time is calculated."
+        tests:
+          - not_null
+
+      - name: monthly_avg_response_time_days
+        description: "The average number of days taken to respond to surveys in this period."
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: NUMBER
+
+      - name: total_responses_for_avg_time
+        description: "Number of survey responses included in this average response time calculation."
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: NUMBER
+
+      - name: dwh_inserted_at
+        description: "Timestamp when this aggregated record was inserted."
+        tests:
+          - not_null
+
+      - name: dwh_updated_at
+        description: "Timestamp when this aggregated record was last updated."
+        tests:
+          - not_null
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - response_month_date_key
+            - store_dim_key
+            - sub_store_dim_key
+
+  - name: fct_participation_rate
+    description: "Fact table storing the monthly survey participation rate per store and sub-store, based on active employees."
+    config:
+      +tags: ['metrics', 'participation', 'daily_build']
+    columns:
+      - name: survey_month_date_key
+        description: "Foreign key to dim_date_extended.date_key, representing the month of participation."
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_date_extended')
+              field: date_key
+
+      - name: store_dim_key
+        description: "Foreign key to dim_stores.store_dim_key."
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_stores')
+              field: store_dim_key
+
+      - name: sub_store_dim_key
+        description: "Foreign key to dim_sub_stores.sub_store_dim_key. Value is 'MISSING_SUB_STORE_KEY' if not applicable or unknown."
+        tests:
+          - not_null
+
+      - name: store_business_key
+        description: "The business key for the store."
+        tests:
+          - not_null
+
+      - name: sub_store_business_key
+        description: "The business key for the sub-store. Can be NULL."
+
+      - name: survey_month
+        description: "The first day of the month for which the participation rate is calculated."
+        tests:
+          - not_null
+
+      - name: survey_response_count_fact
+        description: "Number of unique employees who responded to surveys in this period."
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: NUMBER
+
+      - name: active_employee_count_fact
+        description: "Total number of active/eligible employees for this period, store, and sub-store (denominator)."
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: NUMBER
+
+
+      - name: participation_rate_percentage
+        description: "Calculated participation rate (survey_response_count / active_employee_count * 100)."
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 100 # Percentage
+              inclusive: true
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: NUMBER # Or DECIMAL/FLOAT
+
+      - name: dwh_inserted_at
+        description: "Timestamp when this aggregated record was inserted."
+        tests:
+          - not_null
+
+      - name: dwh_updated_at
+        description: "Timestamp when this aggregated record was last updated."
+        tests:
+          - not_null
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - survey_month_date_key
+            - store_dim_key
+            - sub_store_dim_key
